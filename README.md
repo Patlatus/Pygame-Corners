@@ -9,8 +9,8 @@ To run: run
 
 # Links
 
-Demo is available here: https://replit.com/@JulfyPatlatus/Overcrowded-Trolleybus?v=1
+Demo is available here: https://replit.com/@JulfyPatlatus/Corners?v=1
 
-Video about this participation: https://youtu.be/WaGcn5pjq-Y
+Video about this participation: https://youtu.be/UykeebawD8o
 
-Link to Pygames Devpost hackathon submission: https://devpost.com/software/overcrowded-trolleybus-game
+Link to Pygames Devpost hackathon submission: https://devpost.com/software/corners-who-moves-faster-game
