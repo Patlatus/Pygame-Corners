@@ -20,7 +20,6 @@ _ = gettext.gettext
 
 
 class Level(Enum):
-	OLD = 0
 	OLD_IMP = 1
 	NEW = 2
 
@@ -58,8 +57,8 @@ class Game:
 		self.show_options = False
 		self.show_level = False
 		self.show_lang = False
-		self.ai_green = False
-		self.ai_magenta = False
+		self.ai_green = True
+		self.ai_magenta = True
 		self.delay_ai = False
 
 		self.en = gettext.gettext
@@ -105,9 +104,6 @@ class Game:
 							  text_input=_("BACK"), font=self.get_font(75), base_color="#d7fcd4",
 							  hovering_color="White")
 
-		self.old_ai_choice = Button(image=None, pos=(self.graphics.window_size >> 1, self.graphics.window_size * 2 // 6),
-								   text_input=_("Old AI (2003): Primitive"), font=self.get_font(75), base_color="#d7fcd4",
-								   hovering_color="White")
 		self.imp_old_ai_choice = Button(image=None, pos=(self.graphics.window_size >> 1, self.graphics.window_size * 3 // 6),
 								text_input=_("Improved Old AI: Easy"), font=self.get_font(75), base_color="#d7fcd4",
 								hovering_color="White")
@@ -176,8 +172,6 @@ class Game:
 			self.show_main_menu = True
 
 	def process_level(self, mouse_pos):
-		if self.old_ai_choice.checkForInput(mouse_pos):
-			self.level = Level.OLD
 		if self.imp_old_ai_choice.checkForInput(mouse_pos):
 			self.level = Level.OLD_IMP
 		if self.new_ai_choice.checkForInput(mouse_pos):
@@ -213,7 +207,6 @@ class Game:
 		self.ai_strikes_back.translate(_("HUMAN VS AI"))
 		self.options_back.translate(_("BACK"))
 
-		self.old_ai_choice.translate(_("Old AI (2003): Primitive"))
 		self.imp_old_ai_choice.translate(_("Improved Old AI: Easy"))
 		
 		self.new_ai_choice.translate(_("New AI (2023): Medium"))
@@ -356,11 +349,10 @@ class Game:
 			center=(self.graphics.window_size >> 1, self.graphics.window_size // 6))
 		self.graphics.screen.blit(options_text, options_rect)
 
-		self.old_ai_choice.selected = self.level == Level.OLD
 		self.imp_old_ai_choice.selected = self.level == Level.OLD_IMP
 		self.new_ai_choice.selected = self.level == Level.NEW
 
-		for button in [self.old_ai_choice, self.imp_old_ai_choice, self.new_ai_choice, self.level_back]:
+		for button in [self.imp_old_ai_choice, self.new_ai_choice, self.level_back]:
 			button.changeColor(mouse_pos)
 			button.update(self.graphics.screen)
 
@@ -463,8 +455,6 @@ class Game:
 
 	def get_ai(self):
 		match self.level:
-			case Level.OLD:
-				return self.oldai
 			case Level.OLD_IMP:
 				return self.impoldai
 			case Level.NEW:

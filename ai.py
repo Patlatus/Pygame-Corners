@@ -3,12 +3,12 @@ from board import *
 
 
 def score(h, x, y, pos):
-    score = 0
+    sc = 0
     for item in h[x][y]:
         p, s, d, w = item
         if p != pos:
-            score += s
-    return score
+            sc += s
+    return sc
 
 
 def dirs():
@@ -34,7 +34,7 @@ def manhatten(ax, ay, bx, by):
 def manhetten(start, finish):
     sx, sy = start
     fx, fy = finish
-    return max(0, 4 - max(abs(sy - fy), abs(sx - fx)))
+    return max(0, 3 - max(abs(sy - fy), abs(sx - fx)))
 
 
 def end(pos, path):
@@ -104,14 +104,14 @@ class Ai:
 
     def at_home(self, pos):
         x, y = pos
-        return x >= 4 and (self.magenta == (y < 4))
+        return self.magenta and x < 3 and y < 3 or not self.magenta and x >= 5 and y >= 5
 
     def at_dest(self, pos):
         x, y = pos
-        return x >= 4 and (self.magenta == (y >= 4))
+        return self.magenta and x >= 5 and y >= 5 or not self.magenta and x < 3 and y < 3
 
     def worth_moving(self, start, finish, opponent):
-        if self.turn > 50:
+        if self.turn > 40:
             self.print_wm = True
         sx, sy = start
         fx, fy = finish
@@ -120,13 +120,14 @@ class Ai:
         em = self.empty_middle
         
         sign = 1 if val else -1
-        horizontal_pull = fx - sx if (fy > 4) == val else 0
+        horizontal_pull = (fx - sx)  * sign if not self.last_mode else 0
         vertical_pull = (fy - sy) * sign if not self.last_mode else 0
-        homestart = manhetten(start, (7, 0) if val else (7, 7))
-        homefinish = manhetten(finish, (7, 0) if val else (7, 7))
-        deststart = manhetten(start, (7, 7) if val else (7, 0))
-        destfinish = manhetten(finish, (7, 7) if val else (7, 0))
-        delta = manhatten(sx, sy, 4, em) - manhatten(fx, fy, 4, em)
+        homestart = manhetten(start, (0, 0) if val else (7, 7))
+        homefinish = manhetten(finish, (0, 0) if val else (7, 7))
+        deststart = manhetten(start, (7, 7) if val else (0, 0))
+        destfinish = manhetten(finish, (7, 7) if val else (0, 0))
+        horizontal_pos = 5 if self.magenta else 3
+        delta = manhatten(sx, sy, horizontal_pos, em) - manhatten(fx, fy, horizontal_pos, em)
         pull = vertical_pull + horizontal_pull + delta if deststart == 0 else 0
         return pull + self.turn * (homestart - homefinish) + destfinish - deststart
 
@@ -134,26 +135,26 @@ class Ai:
         if len(path) == 0:
             return 0
         start = pos
-        end = pos
+        fin = pos
 
         color = MAGENTA if self.magenta else GREEN
         opponent_pieces = 0
         for hop in path:
-            bridge = rel(end, hop)
+            bridge = rel(fin, hop)
             if self.board.location(bridge).occupant.color != color:
                 opponent_pieces += 1
-            end = rel2(end, hop)
+            fin = rel2(fin, hop)
 
         bonus = 0
         sx, sy = start
-        ex, ey = end
+        ex, ey = fin
 
         add_score = score(helpers['add'], ex, ey, pos)
 
         if not self.last_mode:
             bonus += 20 * add_score
 
-        rem_score = score(helpers['rem'], sx, sy, end)
+        rem_score = score(helpers['rem'], sx, sy, fin)
         bonus += 20 * rem_score
 
         opp_add_score = score(opponent_helpers['add'], ex, ey, None)
@@ -161,29 +162,29 @@ class Ai:
         if not self.last_mode:
             bonus += self.opponent_help_anti_bonus * opp_add_score
 
-        opp_rem_score = score(opponent_helpers['rem'], sx, sy, end)
+        opp_rem_score = score(opponent_helpers['rem'], sx, sy, fin)
 
         if not self.last_mode:
             bonus += self.opponent_help_anti_bonus * opp_rem_score
 
-        e = self.worth_moving(start, end, False)
+        e = self.worth_moving(start, fin, False)
         fe = (20 + 25 * opponent_pieces) * e + bonus
         return [fe, e, opponent_pieces, self.turn, add_score, rem_score, opp_add_score, opp_rem_score]
 
     def evaluate_step(self, pos, dir, helpers, opponent_helpers):
         start = pos
-        end = rel(pos, dir)
+        fin = rel(pos, dir)
 
         bonus = 0
 
         sx, sy = start
-        ex, ey = end
+        ex, ey = fin
 
         add_score = score(helpers['add'], ex, ey, pos)
 
         if not self.last_mode:
             bonus += 20 * add_score
-        rem_score = score(helpers['rem'], sx, sy, end)
+        rem_score = score(helpers['rem'], sx, sy, fin)
         bonus += 20 * rem_score
 
         bonus += helpers['step'][sx][sy][dirs().index(dir)]
@@ -192,12 +193,12 @@ class Ai:
 
         if not self.last_mode:
             bonus += self.opponent_help_anti_bonus * opp_add_score
-        opp_rem_score = score(opponent_helpers['rem'], sx, sy, end)
+        opp_rem_score = score(opponent_helpers['rem'], sx, sy, fin)
 
         if not self.last_mode:
             bonus += self.opponent_help_anti_bonus * opp_rem_score
 
-        e = self.worth_moving(start, end, False)
+        e = self.worth_moving(start, fin, False)
         fe = 10 * e + bonus
         return [fe, e, self.turn, add_score, rem_score, opp_add_score, opp_rem_score]
 
@@ -315,8 +316,8 @@ class Ai:
 
     def last_green_line(self):
         last_completed_line = -1
-        for y in range(4):
-            for x in range(4, 8):
+        for y in range(3):
+            for x in range(3):
                 start = (x, y)
                 piece = self.board.location(start).occupant
                 if piece is None or piece.color != GREEN:
@@ -326,8 +327,8 @@ class Ai:
 
     def last_magenta_line(self):
         last_completed_line = 8
-        for y in reversed(range(4, 8)):
-            for x in range(4, 8):
+        for y in reversed(range(5, 8)):
+            for x in range(5, 8):
                 start = (x, y)
                 piece = self.board.location(start).occupant
                 if piece is None or piece.color != MAGENTA:
@@ -344,7 +345,7 @@ class Ai:
 
         self.last_line = self.last_magenta_line() if self.magenta else self.last_green_line()
         self.last_mode = self.last_line != -1 and self.last_line != 8
-        self.empty_middle = (4 + self.last_line - 1) >> 1 if self.magenta else (3 + self.last_line + 1) >> 1
+        self.empty_middle = (5 + self.last_line - 1) >> 1 if self.magenta else (2 + self.last_line + 1) >> 1
 
         helpers = self.helpers(False)
         opponent_helpers = self.helpers(True)
@@ -363,6 +364,7 @@ class Ai:
                     f = end(s, p)
                     w = self.worth_moving(s, f, False)
                     e, we, op, t, ads, rs, oas, ors = self.evaluate(s, p, helpers, opponent_helpers)
+
                     if best_score is None or e > best_score:
                         start = s
                         best_is_hop = True
