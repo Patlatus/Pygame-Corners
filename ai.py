@@ -173,6 +173,11 @@ class Ai:
         if not self.last_mode:
             bonus += self.opponent_help_anti_bonus * opp_rem_score
 
+        if self.last_turn is not None:
+            last_s, last_f = self.last_turn
+            if fin == last_s and start == last_f:
+                bonus -= 1000
+
         e = self.worth_moving(start, fin, False)
         fe = (20 + 25 * opponent_pieces) * e + bonus
         return [fe, e, opponent_pieces, self.turn, add_score, rem_score, opp_add_score, opp_rem_score]
