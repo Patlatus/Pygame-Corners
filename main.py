@@ -11,6 +11,7 @@ from graphics import Graphics
 from board import *
 from button import Button
 from ai import Ai
+from ai_imp import ImpAi
 from improved_old_ai import ImprovedOldAi
 import gettext
 
@@ -22,6 +23,7 @@ _ = gettext.gettext
 class Level(Enum):
 	OLD_IMP = 1
 	NEW = 2
+	NEW_IMP = 3
 
 
 class Game:
@@ -41,6 +43,7 @@ class Game:
 		self.board = Board()
 		self.ai = Ai(self.graphics, self.board)
 		self.impoldai = ImprovedOldAi(self.graphics, self.board)
+		self.impai = ImpAi(self.graphics, self.board)
 		self.level = Level.NEW
 
 		self.turn = GREEN
@@ -51,7 +54,7 @@ class Game:
 		self.TICK = pygame.USEREVENT
 		self.AI_TICK = pygame.USEREVENT + 1
 		pygame.time.set_timer(self.TICK, 500)
-		pygame.time.set_timer(self.AI_TICK, 1200)
+		pygame.time.set_timer(self.AI_TICK, 1000)
 		self.show_menu = False
 		self.show_main_menu = False
 		self.show_options = False
@@ -104,13 +107,17 @@ class Game:
 							  text_input=_("BACK"), font=self.get_font(75), base_color="#d7fcd4",
 							  hovering_color="White")
 
-		self.imp_old_ai_choice = Button(image=None, pos=(self.graphics.window_size >> 1, self.graphics.window_size * 3 // 6),
+		self.imp_old_ai_choice = Button(image=None, pos=(self.graphics.window_size >> 1, self.graphics.window_size * 2 // 6),
 								text_input=_("Improved Old AI: Easy"), font=self.get_font(75), base_color="#d7fcd4",
 								hovering_color="White")
 		
 		self.new_ai_choice = Button(image=None,
-									  pos=(self.graphics.window_size >> 1, self.graphics.window_size * 4 // 6),
+									  pos=(self.graphics.window_size >> 1, self.graphics.window_size * 3 // 6),
 									  text_input=_("New AI (2023): Medium"), font=self.get_font(75), base_color="#d7fcd4",
+									  hovering_color="White")
+		self.imp_ai_choice = Button(image=None,
+									  pos=(self.graphics.window_size >> 1, self.graphics.window_size * 4 // 6),
+									  text_input=_("Improved New AI: Medium+"), font=self.get_font(75), base_color="#d7fcd4",
 									  hovering_color="White")
 		self.level_back = Button(image=None, pos=(self.graphics.window_size >> 1, self.graphics.window_size * 5 // 6),
 								   text_input=_("BACK"), font=self.get_font(75), base_color="#d7fcd4",
@@ -176,6 +183,8 @@ class Game:
 			self.level = Level.OLD_IMP
 		if self.new_ai_choice.checkForInput(mouse_pos):
 			self.level = Level.NEW
+		if self.imp_ai_choice.checkForInput(mouse_pos):
+			self.level = Level.NEW_IMP
 		if self.level_back.checkForInput(mouse_pos):
 			self.show_level = False
 			self.show_main_menu = True
@@ -210,6 +219,7 @@ class Game:
 		self.imp_old_ai_choice.translate(_("Improved Old AI: Easy"))
 		
 		self.new_ai_choice.translate(_("New AI (2023): Medium"))
+		self.imp_ai_choice.translate(_("New Improved AI: Medium+"))
 		self.level_back.translate(_("BACK"))
 		self.en_choice.translate(_("English"))
 		self.ua_choice.translate(_("Ukrainian"))
@@ -355,8 +365,9 @@ class Game:
 
 		self.imp_old_ai_choice.selected = self.level == Level.OLD_IMP
 		self.new_ai_choice.selected = self.level == Level.NEW
+		self.imp_ai_choice.selected = self.level == Level.NEW_IMP
 
-		for button in [self.imp_old_ai_choice, self.new_ai_choice, self.level_back]:
+		for button in [self.imp_old_ai_choice, self.new_ai_choice, self.imp_ai_choice, self.level_back]:
 			button.changeColor(mouse_pos)
 			button.update(self.graphics.screen)
 
@@ -464,6 +475,8 @@ class Game:
 				return self.impoldai
 			case Level.NEW:
 				return self.ai
+			case Level.NEW_IMP:
+				return self.impai
 
 	def perform_ai_turn(self):
 		print("self.turn", self.turn, ' ai m ', self.ai_magenta)
