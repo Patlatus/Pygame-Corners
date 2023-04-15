@@ -121,7 +121,7 @@ class Ai:
         em = self.empty_middle
         
         sign = 1 if val else -1
-        horizontal_pull = (fx - sx)  * sign if not self.last_mode else 0
+        horizontal_pull = (fx - sx) * sign if not self.last_mode else 0
         vertical_pull = (fy - sy) * sign if not self.last_mode else 0
         homestart = manhetten(start, (0, 0) if val else (7, 7))
         homefinish = manhetten(finish, (0, 0) if val else (7, 7))
@@ -129,9 +129,17 @@ class Ai:
         destfinish = manhetten(finish, (7, 7) if val else (0, 0))
         horizontal_pos = 5 if self.magenta else 3
         delta = manhatten(sx, sy, horizontal_pos, em) - manhatten(fx, fy, horizontal_pos, em)
+        # The pull is calculated only for pieces which haven't been put into destination base
+        # If the piece is already reached destination base, it is no longer pulled further
+        # Since Delta target is defined not as the corner point (0, 0) or (7, 7) but as a cell in a middle of
+        # non-completed rows in the destination base and 3 or 5 base entrance point
         pull = vertical_pull + horizontal_pull + delta if deststart == 0 else 0
         print('Worth: ', start, finish, ' vp: ', vertical_pull, ' hp: ', horizontal_pull, ' d: ', delta, ' p: ', pull,
                ' hs - hm ', self.turn * (homestart - homefinish), ' df-ds: ', destfinish - deststart)
+        # Dest Finish and Dest Start difference help to move pieces deeper into the destination base once they get there
+        # Home Start and Home Finish difference help to remove pieces from the starting base
+        # This difference is multiplied by the turn number because in later turns it is crucial to leave the base
+        # to avoid hitting limit of leaving the base and lose
         return pull + self.turn * (homestart - homefinish) + destfinish - deststart
 
     def evaluate(self, pos, path, helpers, opponent_helpers, step_rem_helpers):
