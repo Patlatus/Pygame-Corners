@@ -172,8 +172,8 @@ class ImprovedOldAi():
         print("All pieces moved out of the base???")
         last_completed_line = self.last_magenta_line()
 
-        for x in range(8):
-            for y in range(7):
+        for y in range(7):
+            for x in range(8):
                 start = (x, y)
                 piece = self.board.location(start).occupant
                 if piece is not None and piece.color == MAGENTA:
@@ -187,8 +187,8 @@ class ImprovedOldAi():
                     if sp is None and (x >= 5 or y < last_completed_line - 1):
                         return [start, step]
 
-        for x in range(7):
-            for y in range(8):
+        for y in range(8):
+            for x in range(7):
                 start = (x, y)
                 piece = self.board.location(start).occupant
                 if piece is not None and piece.color == MAGENTA:
