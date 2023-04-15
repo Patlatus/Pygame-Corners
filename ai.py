@@ -127,15 +127,17 @@ class Ai:
         homefinish = manhetten(finish, (0, 0) if val else (7, 7))
         deststart = manhetten(start, (7, 7) if val else (0, 0))
         destfinish = manhetten(finish, (7, 7) if val else (0, 0))
-        horizontal_pos = 5 if self.magenta else 3
+        horizontal_pos = 5 if self.magenta else 2
+
         delta = manhatten(sx, sy, horizontal_pos, em) - manhatten(fx, fy, horizontal_pos, em)
         # The pull is calculated only for pieces which haven't been put into destination base
         # If the piece is already reached destination base, it is no longer pulled further
         # Since Delta target is defined not as the corner point (0, 0) or (7, 7) but as a cell in a middle of
         # non-completed rows in the destination base and 3 or 5 base entrance point
         pull = vertical_pull + horizontal_pull + delta if deststart == 0 else 0
-        print('Worth: ', start, finish, ' vp: ', vertical_pull, ' hp: ', horizontal_pull, ' d: ', delta, ' p: ', pull,
-               ' hs - hm ', self.turn * (homestart - homefinish), ' df-ds: ', destfinish - deststart)
+        # print('Worth: ', start, finish, ' vp: ', vertical_pull, ' hp: ', horizontal_pull, ' d: ', delta, ' p: ', pull)
+        # print('W. hs - hm ', self.turn * (homestart - homefinish), ' df-ds: ', destfinish - deststart)
+
         # Dest Finish and Dest Start difference help to move pieces deeper into the destination base once they get there
         # Home Start and Home Finish difference help to remove pieces from the starting base
         # This difference is multiplied by the turn number because in later turns it is crucial to leave the base
@@ -188,7 +190,7 @@ class Ai:
 
         e = self.worth_moving(start, fin, False)
         fe = (20 + 25 * opponent_pieces) * e + bonus
-        return [fe, e, opponent_pieces, self.turn, add_score, rem_score, opp_add_score, opp_rem_score]
+        return [fe, e, opponent_pieces, self.turn, add_score, rem_score, opp_add_score, opp_rem_score, step_rem_score]
 
     def evaluate_step(self, pos, dir, helpers, opponent_helpers, step_rem_helpers):
         start = pos
@@ -227,7 +229,7 @@ class Ai:
 
         e = self.worth_moving(start, fin, False)
         fe = 10 * e + bonus
-        return [fe, e, self.turn, add_score, rem_score, opp_add_score, opp_rem_score]
+        return [fe, e, self.turn, add_score, rem_score, opp_add_score, opp_rem_score, step_rem_score]
 
     def hops_helpers(self, pos, path, travelled, helpers_add, helpers_step, opponent):
         result = []
@@ -323,17 +325,18 @@ class Ai:
         helpers_rem = [[[] for i in range(8)] for i in range(8)]
         for x in range(8):
             for y in range(8):
-                piece = self.board.location((x, y)).occupant
-                if piece is not None and (((piece.color == MAGENTA) == self.magenta) != opponent):
-                    pos = (x, y)
-                    for dir in self.steps(pos):
-                        step = rel(pos, dir)
-                        sx, sy = step
-                        if self.board.on_board(step):
-                            if self.board.location(step).occupant is not None:
-                                w = self.worth_moving(pos, step, opponent)
-                                if w > 0:
-                                    helpers_rem[sx][sy].append([pos, 1, dir, w])
+                if not self.at_dest((x, y)):
+                    piece = self.board.location((x, y)).occupant
+                    if piece is not None and (((piece.color == MAGENTA) == self.magenta) != opponent):
+                        pos = (x, y)
+                        for dir in self.steps(pos):
+                            step = rel(pos, dir)
+                            sx, sy = step
+                            if self.board.on_board(step):
+                                if self.board.location(step).occupant is not None:
+                                    w = self.worth_moving(pos, step, opponent)
+                                    if w > 0:
+                                        helpers_rem[sx][sy].append([pos, 1, dir, w])
         return helpers_rem
 
     def show_moves(self, start, is_hop, moves):
@@ -408,8 +411,8 @@ class Ai:
                 if len(p) > 0:
                     f = end(s, p)
                     w = self.worth_moving(s, f, False)
-                    e, we, op, t, ads, rs, oas, ors = self.evaluate(s, p, helpers, opponent_helpers, step_rem_helpers)
-                    print('Hop: s: ', s, ' p: ', p, ' f:', f, ' score: ', e, ' worth: ', we, ' w: ', w, ' ', op, ' ', t, ' ', ads, ' ', rs, ' ', oas, ' ', ors)
+                    e, we, op, t, ads, rs, oas, ors, srs = self.evaluate(s, p, helpers, opponent_helpers, step_rem_helpers)
+                    #print('Hop: s: ', s, ' p: ', p, ' f:', f, ' score: ', e, ' worth: ', we, ' w: ', w, ' ', op, ' ', t, ' ', ads, ' ', rs, ' ', oas, ' ', ors, ' srs: ', srs)
 
                     if best_score is None or e > best_score:
                         start = s
@@ -425,14 +428,14 @@ class Ai:
                     moves = self.legal_steps(pos)
                     for move in moves:
                         f = rel(pos, move)
-                        sc, we, t, ads, rs, oas, ors = self.evaluate_step(pos, move, helpers, opponent_helpers, step_rem_helpers)
-                        print('Steps: s:', pos, ' move: ', move, ' f: ', f, ' score: ', sc, ' worth: ', we, ' ', t, ' ', ads, ' ', rs, ' ', oas, ' ', ors)
+                        sc, we, t, ads, rs, oas, ors, srs = self.evaluate_step(pos, move, helpers, opponent_helpers, step_rem_helpers)
+                        #print('Steps: s:', pos, ' move: ', move, ' f: ', f, ' score: ', sc, ' worth: ', we, ' ', t, ' ', ads, ' ', rs, ' ', oas, ' ', ors, ' srs: ', srs)
                         if best_score is None or sc > best_score:
                             start = pos
                             best_is_hop = False
                             best_move = move
                             best_score = sc
-        print('BestScore: s:', start, ' move: ', best_move, ' score: ', best_score)
+        #print('BestScore: s:', start, ' move: ', best_move, ' score: ', best_score)
 
         if best_score is not None:
             self.last_turn = (start, end(start, best_move) if best_is_hop else rel(start, best_move))
