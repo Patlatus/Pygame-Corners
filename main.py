@@ -57,8 +57,8 @@ class Game:
 		self.show_options = False
 		self.show_level = False
 		self.show_lang = False
-		self.ai_green = True
-		self.ai_magenta = True
+		self.ai_green = False
+		self.ai_magenta = False
 		self.delay_ai = False
 
 		self.en = gettext.gettext
@@ -454,6 +454,7 @@ class Game:
 			self.perform_ai_turn()
 
 	def get_ai(self):
+		return self.ai if self.turn == MAGENTA else self.impoldai
 		match self.level:
 			case Level.OLD_IMP:
 				return self.impoldai
