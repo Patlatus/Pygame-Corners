@@ -6,6 +6,8 @@ from piece import Piece
 WHITE    = (255, 255, 255)
 GREEN    = (  0, 255,   0)
 MAGENTA  = (255,   0, 255)
+GREEN_DARK    = (  0, 190,   0)
+MAGENTA_DARK  = (190,   0, 190)
 BLACK    = (  0,   0,   0)
 
 
@@ -15,88 +17,98 @@ EAST = (1, 0)
 SOUTH = (0, 1)
 WEST = (-1, 0)
 
+
+def rel(dir, pixel):
+    """
+    Returns the coordinates one square in a different direction to (x,y).
+
+    ===DOCTESTS===
+
+    >>> board = Board()
+
+    >>> rel(NORTH, (1,2))
+    (1,1)
+
+    >>> rel(SOUTH, (3,4))
+    (3,5)
+
+    >>> rel(EAST, (3,6))
+    (3,5)
+
+    >>> rel(WEST, (2,5))
+    (1,5)
+    """
+    x, y = pixel
+    dx, dy = dir
+    return x + dx, y + dy
+
+
+def new_board():
+    """
+    Create a new board matrix.
+    """
+
+    # initialize squares and place them in matrix
+
+    matrix = [[None] * 8 for i in range(8)]
+
+    for x in range(8):
+        for y in range(8):
+            if (x % 2 != 0) and (y % 2 == 0):
+                matrix[y][x] = Square(WHITE)
+            elif (x % 2 != 0) and (y % 2 != 0):
+                matrix[y][x] = Square(BLACK)
+            elif (x % 2 == 0) and (y % 2 != 0):
+                matrix[y][x] = Square(WHITE)
+            elif (x % 2 == 0) and (y % 2 == 0):
+                matrix[y][x] = Square(BLACK)
+
+    # initialize the pieces and put them in the appropriate squares
+
+    for x in range(3):
+        for y in range(3):
+            matrix[x][y].occupant = Piece(MAGENTA)
+    for x in range(5, 8):
+        for y in range(5, 8):
+            matrix[x][y].occupant = Piece(GREEN)
+
+    return matrix
+
+
+def board_string(board):
+    """
+    Takes a board and returns a matrix of the board space colors. Used for testing new_board()
+    """
+
+    board_string = [[None] * 8] * 8
+
+    for x in range(8):
+        for y in range(8):
+            if board[x][y].color == WHITE:
+                board_string[x][y] = "WHITE"
+            else:
+                board_string[x][y] = "BLACK"
+
+    return board_string
+
+
+def adjacent(pixel):
+    """
+    Returns a list of squares locations that are adjacent (on a diagonal) to (x,y).
+    """
+    x, y = pixel
+
+    return [rel(NORTH, (x, y)), rel(EAST, (x, y)), rel(WEST, (x, y)), rel(SOUTH, (x, y))]
+
+
 class Board:
     def __init__(self):
-        self.matrix = self.new_board()
+        self.matrix = new_board()
+        self.travelled = self.reset_travel()
 
-    def new_board(self):
-        """
-        Create a new board matrix.
-        """
-
-        # initialize squares and place them in matrix
-
-        matrix = [[None] * 8 for i in range(8)]
-
-        for x in range(8):
-            for y in range(8):
-                if (x % 2 != 0) and (y % 2 == 0):
-                    matrix[y][x] = Square(WHITE)
-                elif (x % 2 != 0) and (y % 2 != 0):
-                    matrix[y][x] = Square(BLACK)
-                elif (x % 2 == 0) and (y % 2 != 0):
-                    matrix[y][x] = Square(WHITE)
-                elif (x % 2 == 0) and (y % 2 == 0):
-                    matrix[y][x] = Square(BLACK)
-
-        # initialize the pieces and put them in the appropriate squares
-
-        for x in range(3):
-            for y in range(3):
-                matrix[x][y].occupant = Piece(MAGENTA)
-        for x in range(5, 8):
-            for y in range(5, 8):
-                matrix[x][y].occupant = Piece(GREEN)
-
-        return matrix
-
-    def board_string(self, board):
-        """
-        Takes a board and returns a matrix of the board space colors. Used for testing new_board()
-        """
-
-        board_string = [[None] * 8] * 8
-
-        for x in range(8):
-            for y in range(8):
-                if board[x][y].color == WHITE:
-                    board_string[x][y] = "WHITE"
-                else:
-                    board_string[x][y] = "BLACK"
-
-        return board_string
-
-    def rel(self, dir, pixel):
-        """
-        Returns the coordinates one square in a different direction to (x,y).
-
-        ===DOCTESTS===
-
-        >>> board = Board()
-
-        >>> board.rel(NORTH, (1,2))
-        (1,1)
-
-        >>> board.rel(SOUTH, (3,4))
-        (3,5)
-
-        >>> board.rel(EAST, (3,6))
-        (3,5)
-
-        >>> board.rel(WEST, (2,5))
-        (1,5)
-        """
-        x, y = pixel
-        dx, dy = dir
-        return (x + dx, y + dy)
-
-    def adjacent(self, pixel):
-        """
-        Returns a list of squares locations that are adjacent (on a diagonal) to (x,y).
-        """
-        x, y = pixel
-
-        return [self.rel(NORTH, (x, y)), self.rel(EAST, (x, y)), self.rel(WEST, (x, y)), self.rel(SOUTH, (x, y))]
+    def reset_travel(self):
+        self.travelled = [[False] * 8 for i in range(8)]
+        return self.travelled
 
     def location(self, pixel):
         """
@@ -113,8 +125,8 @@ class Board:
         If that location is empty, then blind_legal_moves() return an empty list.
         """
 
-        x,y = pixel
-        return self.adjacent(pixel) if self.matrix[x][y].occupant != None else []
+        x, y = pixel
+        return adjacent(pixel) if self.matrix[x][y].occupant is not None else []
 
     def legal_moves(self, pixel, hop=False):
         """
@@ -126,25 +138,29 @@ class Board:
         blind_legal_moves = self.blind_legal_moves((x, y))
         legal_moves = []
 
-        if hop == False:
+        if not hop:
+            self.reset_travel()
             for move in blind_legal_moves:
-                if hop == False:
+                if not hop:
                     if self.on_board(move):
-                        if self.location(move).occupant == None:
+                        if self.location(move).occupant is None:
                             legal_moves.append(move)
 
                         else:
                             mx, my = move
                             jump = (mx + mx - x, my + my - y)
-                            if self.on_board(jump) and self.location(jump).occupant == None: # is this location empty?
+                            if self.on_board(jump) and self.location(jump).occupant is None: # is this location empty?
                                 legal_moves.append(jump)
 
         else:  # hop == True
             for move in blind_legal_moves:
-                if self.on_board(move) and self.location(move).occupant != None:
+                if self.on_board(move) and self.location(move).occupant is not None:
                     mx, my = move
-                    jump = (mx + mx - x, my + my - y)
-                    if self.on_board(jump) and self.location(jump).occupant == None: # is this location empty?
+                    jx = mx + mx - x
+                    jy = my + my - y
+                    jump = (jx, jy)
+                    # is this location empty and not travelled yet?
+                    if self.on_board(jump) and self.location(jump).occupant is None and not self.travelled[jx][jy]:
                         legal_moves.append(jump)
 
         return legal_moves
@@ -162,6 +178,8 @@ class Board:
         """
         sx, sy = start
         fx, fy = finish
+
+        self.travelled[sx][sy] = True
 
         self.matrix[fx][fy].occupant = self.matrix[sx][sy].occupant
         self.remove_piece((sx, sy))
