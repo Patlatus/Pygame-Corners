@@ -49,8 +49,8 @@ class ImpAi(Ai):
                     moves = self.legal_steps(pos)
                     for move in moves:
                         f = rel(pos, move)
-                        sc, we, t, ads, rs, oas, ors, srs = self.evaluate_step(pos, move, helpers, opponent_helpers, step_rem_helpers)
-                        print('Steps: s:', pos, ' move: ', move, ' f: ', f, ' score: ', sc, ' worth: ', we, ' ', t, ' ', ads, ' ', rs, ' ', oas, ' ', ors, ' srs: ', srs)
+                        sc, we, t, ads, rs, ss, oas, ors, srs = self.evaluate_step(pos, move, helpers, opponent_helpers, step_rem_helpers)
+                        print('Steps: s:', pos, ' move: ', move, ' f: ', f, ' score: ', sc, ' worth: ', we, ' ', t, ' ', ads, ' ', rs, ' ss: ', ss, ' oas: ', oas, ' ', ors, ' srs: ', srs)
                         if best_score is None or sc > best_score:
                             start = pos
                             best_is_hop = False

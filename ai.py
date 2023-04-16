@@ -148,7 +148,7 @@ class Ai:
 
     def evaluate(self, pos, path, helpers, opponent_helpers, step_rem_helpers):
         if len(path) == 0:
-            return 0
+            return [0, 0, 0, self.turn, 0, 0, 0, 0, 0]
         start = pos
         fin = pos
 
@@ -213,7 +213,17 @@ class Ai:
         step_rem_score = score(step_rem_helpers, sx, sy, fin)
         bonus += (20 if self.last_mode else 10) * step_rem_score
 
-        bonus += helpers['step'][sx][sy][dirs().index(dir)]
+        sh = helpers['step'][sx][sy][dirs().index(dir)]
+        step_score = 0
+        if len(sh) > 0:
+            ss = 0
+            for path in sh:
+                s, way = path
+                # hfe = hop final estimate, e = net worth moving estimate
+                hfe, e, op, t, ads, rs, oas, ors, srs = self.evaluate(s, way, helpers, opponent_helpers, step_rem_helpers)
+                ss += hfe
+            step_score = ss
+        bonus += step_score
 
         opp_add_score = score(opponent_helpers['add'], ex, ey, None)
 
@@ -231,7 +241,7 @@ class Ai:
 
         e = self.worth_moving(start, fin, False)
         fe = 10 * e + bonus
-        return [fe, e, self.turn, add_score, rem_score, opp_add_score, opp_rem_score, step_rem_score]
+        return [fe, e, self.turn, add_score, rem_score, step_score, opp_add_score, opp_rem_score, step_rem_score]
 
     def hops_helpers(self, pos, path, travelled, helpers_add, helpers_step, opponent):
         result = []
@@ -270,7 +280,7 @@ class Ai:
                                 hop_piece2 = self.board.location(hop2).occupant
                                 if self.worth_moving(pos, hop2, opponent) > 0:
                                     if hop_piece2 is None and step_piece2 is None:
-                                        helpers_step[hx][hy][di] += 1
+                                        helpers_step[hx][hy][di].append(path)
                             di += 1
 
                 elif hop_piece is None and step_piece is None:
@@ -300,7 +310,7 @@ class Ai:
     def helpers(self, opponent):
         helpers_add = [[[] for i in range(8)] for i in range(8)]
         helpers_rem = [[[] for i in range(8)] for i in range(8)]
-        helpers_step = [[[0] * 4 for i in range(8)] * 8 for i in range(8)]
+        helpers_step = [[[[] for i in range(4)] for i in range(8)] for i in range(8)]
 
         hops = []
         for x in range(8):
@@ -430,8 +440,8 @@ class Ai:
                     moves = self.legal_steps(pos)
                     for move in moves:
                         f = rel(pos, move)
-                        sc, we, t, ads, rs, oas, ors, srs = self.evaluate_step(pos, move, helpers, opponent_helpers, step_rem_helpers)
-                        print('Steps: s:', pos, ' move: ', move, ' f: ', f, ' score: ', sc, ' worth: ', we, ' ', t, ' ', ads, ' ', rs, ' ', oas, ' ', ors, ' srs: ', srs)
+                        sc, we, t, ads, rs, ss, oas, ors, srs = self.evaluate_step(pos, move, helpers, opponent_helpers, step_rem_helpers)
+                        print('Steps: s:', pos, ' move: ', move, ' f: ', f, ' score: ', sc, ' worth: ', we, ' ', t, ' ', ads, ' ', rs, ' ss: ', ss, ' oas: ', oas, ' ', ors, ' srs: ', srs)
                         if best_score is None or sc > best_score:
                             start = pos
                             best_is_hop = False
