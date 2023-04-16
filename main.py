@@ -60,8 +60,8 @@ class Game:
 		self.show_options = False
 		self.show_level = False
 		self.show_lang = False
-		self.ai_green = False
-		self.ai_magenta = False
+		self.ai_green = True
+		self.ai_magenta = True
 		self.delay_ai = False
 
 		self.en = gettext.gettext
@@ -292,10 +292,10 @@ class Game:
 					self.show_main_menu = not self.show_options and not self.show_level and not self.show_lang and self.show_menu
 					if not self.is_human_turn() and not self.end:
 						self.perform_ai_turn()
-				if event.key == pygame.K_DELETE:
-					#self.ai_magenta = False
-					pass
-
+				elif event.key == pygame.K_DELETE:
+					self.ai_magenta = not self.ai_magenta
+				elif event.key == pygame.K_INSERT:
+					self.ai_green = not self.ai_green
 
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				mouse_pos = pygame.mouse.get_pos()
@@ -469,7 +469,7 @@ class Game:
 			self.perform_ai_turn()
 
 	def get_ai(self):
-		#return self.ai if self.turn != MAGENTA else self.impoldai
+		return self.ai if self.turn != MAGENTA else self.impai
 		match self.level:
 			case Level.OLD_IMP:
 				return self.impoldai
