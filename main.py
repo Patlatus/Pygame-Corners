@@ -12,6 +12,7 @@ from board import *
 from button import Button
 from ai import Ai
 from ai_imp import ImpAi
+from checkpoints import CheckPoints
 from improved_old_ai import ImprovedOldAi
 import gettext
 
@@ -43,7 +44,7 @@ class Game:
 		self.board = Board()
 		self.ai = Ai(self.graphics, self.board)
 		self.impoldai = ImprovedOldAi(self.graphics, self.board)
-		self.impai = ImpAi(self.graphics, self.board)
+		self.impai = CheckPoints(self.graphics, self.board)
 		self.level = Level.NEW
 
 		self.turn = GREEN
