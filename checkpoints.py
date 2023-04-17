@@ -4,6 +4,16 @@ magenta_checkpoints = [(2, 1), (2, 3), (2, 5), (3, 6), (5, 6)]
 green_checkpoints = [(5, 6), (5, 4), (5, 2), (4, 1), (2, 1)]
 
 
+def ladder(start, path):
+    fin = start
+    lad = []
+    for hop in path:
+        bridge = rel(fin, hop)
+        lad.append(bridge)
+        fin = rel2(fin, hop)
+    return lad
+
+
 class CheckPoints(Ai):
 
     def pieces_kept(self, checkpoint):
@@ -103,7 +113,7 @@ class CheckPoints(Ai):
         fe = 20 * e + bonus
         return [fe, e, op, t, a_s, r_s, oas, ors, srs, pl]
 
-    def evaluate_step(self, pos, dir, helpers, opponent_helpers, step_rem_helpers):
+    def evaluate_step(self, pos, dir, helpers, opponent_helpers, step_rem_helpers, deferred_gratification):
         f, e, t, a_s, r_s, ss, oas, ors, srs, pl = super().evaluate_step(
             pos, dir, helpers, opponent_helpers, step_rem_helpers
         )
@@ -130,6 +140,10 @@ class CheckPoints(Ai):
         if not self.last_mode:
             bonus += self.opponent_help_anti_bonus * ors
 
+        deferred, lad = deferred_gratification[ex][ey]
+        if not self.last_mode and start not in lad:
+            bonus += deferred
+
         bonus += pl
 
         """already_on_checkpoint = False
@@ -144,7 +158,50 @@ class CheckPoints(Ai):
                     bonus += 1000"""
 
         fe = 10 * e + bonus
-        return [fe, e, t, a_s, r_s, ss, oas, ors, srs]
+        return [fe, e, t, a_s, r_s, ss, oas, ors, srs, deferred, pl]
+
+    def hops_only(self, pos, travelled):
+        result = []
+        for dir in self.steps(pos):
+            step = rel(pos, dir)
+            hop = rel2(pos, dir)
+            hx, hy = hop
+
+            if self.board.on_board(hop) and not travelled[hx][hy]:
+                step_piece = self.board.location(step).occupant
+                hop_piece = self.board.location(hop).occupant
+
+                if hop_piece is None and step_piece is not None:
+                    result.append(dir)
+        return result
+
+    def traverse_only(self, pos, path, travelled, opponent):
+        start, way = path
+        hops = self.hops_only(pos, travelled)
+        if len(hops) == 0:
+            return [way]
+        results = [way] if opponent else []
+        for hop in hops:
+            x, y = rel2(pos, hop)
+            if not travelled[x][y]:
+                travelled[x][y] = True
+                start, way = path
+                way = way.copy()
+                way.append(hop)
+                results += self.traverse_only((x, y), [start, way], travelled, opponent)
+                travelled[x][y] = False
+        return results
+
+    def delayed_hops(self, steps, opponent):
+        hops = []
+        for s in steps:
+            x, y = s
+            travelled = [[False] * 8 for i in range(8)]
+            travelled[x][y] = True
+            path = [(x, y), []]
+            results = self.traverse_only((x, y), path, travelled, opponent)
+            hops.append([(x, y), results])
+        return hops
 
     def act(self, turn):
         self.turn = turn
@@ -166,6 +223,38 @@ class CheckPoints(Ai):
         # print_h(helpers['rem'])
         # print_h(opponent_helpers['add'])
         # print_h(opponent_helpers['rem'])
+
+        steps_destinations = []
+        for x in range(8):
+            for y in range(8):
+                pos = (x, y)
+                piece = self.board.location(pos).occupant
+                if piece is not None and ((piece.color == MAGENTA) == self.magenta):
+                    moves = self.legal_steps(pos)
+                    for move in moves:
+                        f = rel(pos, move)
+                        steps_destinations.append(f)
+
+        delayed_hops = self.delayed_hops(steps_destinations, False)
+        deferred_gratification = [[[] for i in range(8)] for i in range(8)]
+        for dh in delayed_hops:
+            print('dh: ', dh)
+            s, ways = dh
+            x, y = s
+            ms = None
+            lad = []
+            for p in ways:
+                e, we, op, t, ads, rs, oas, ors, srs, pl = self.evaluate(
+                    s, p, helpers, opponent_helpers, step_rem_helpers
+                )
+                print(
+                    'Hop: s: ', s, ' p: ', p, ' f:', f, ' score: ', e, ' worth: ', we, ' ', op, ' ', t, ' ',
+                    ads, ' ', rs, ' ', oas, ' ', ors, ' srs: ', srs
+                )
+                if ms is None or e > ms:
+                    ms = e
+                    lad = ladder(s, p)
+            deferred_gratification[x][y] = [ms, lad]
 
         hops = helpers['hops']
         for hop in hops:
@@ -198,8 +287,13 @@ class CheckPoints(Ai):
                     for move in moves:
                         print('Move:', move)
                         f = rel(pos, move)
-                        sc, we, t, ads, rs, ss, oas, ors, srs = self.evaluate_step(pos, move, helpers, opponent_helpers, step_rem_helpers)
-                        print('Steps: s:', pos, ' move: ', move, ' f: ', f, ' score: ', sc, ' worth: ', we, ' ', t, ' ', ads, ' ', rs, ' ss: ', ss, ' oas: ', oas, ' ', ors, ' srs: ', srs)
+                        sc, we, t, ads, rs, ss, oas, ors, srs, df, pl = self.evaluate_step(
+                            pos, move, helpers, opponent_helpers, step_rem_helpers, deferred_gratification
+                        )
+                        print(
+                            'Steps: s:', pos, ' move: ', move, ' f: ', f, ' score: ', sc, ' worth: ', we, ' ', t, ' ',
+                            ads, ' ', rs, ' ss: ', ss, ' oas: ', oas, ' ', ors, ' srs: ', srs, ' df ', df, ' pl ', pl
+                        )
                         if best_score is None or sc > best_score:
                             start = pos
                             best_is_hop = False
